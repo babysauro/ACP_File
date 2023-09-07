@@ -1,0 +1,28 @@
+PROGETTO ACP
+
+**Funzionalità 1 (Aggiunta nuove corse/viaggi)**
+
+---HTML---
+Il codice rappresenta un'interfaccia utente per aggiungere un nuovo viaggio. 
+Sono presenti le voci per inserire il file di un viaggio (se lo si possiede), oppure delle caselle sottostanti in cui inserire manualmente le informazioni del viaggio.
+Vi è un codice, porto di partenza e di arrivo (con l'autocompletamento), la data in formato data con il calendario, la durata del viaggio con 60 min come valore di default, i posti passeggeri e veicoli con i rispettivi valori di default, che indicano la capienza della nave, ed infine i prezzi per i passeggeri ed i veicoli. 
+I valori di default sono stati inseriti come indicazione, ma posso essere incrementati e decrementati tranquillamente.
+Alla fine della schermata è presente un bottone con scritto "Carica" per caricare il nuovo viaggio. Facendo click, quindi premendo il bottone, viene chiamata la funzione uploadCorse che si trova nel file main.js  
+
+---JAVASCRIPT-CLIENT---
+- Vengono presi i valori dei campi di input username, password e file da HTML utilizzando jQuery
+- Viene effettuata una condizione per determinare se è stato selezionato il file:
+	.Se non è stato selezionato, i valori di input vengono estratti rispettivamente dai campi di input nell'HTML. La data viene convertita in un formato più appropiato. Viene effettuata una richiesta AJAX al server di tipo POST in cui i dati raccolti vengono inviati attraverso l'URL "api\viaggio". Viene eseguita la funzione di callback "success" quando la richiesta ha successo: se la risposta è negativa (indica errore) allora viene mostrato un messaggio temporaneo, altrimenti viene chiamata la funzione "aggiornaViaggi()" e viene mostrato un messagio.
+	. Se è stato selezionato il file, viene creato un oggetto FormData che contiene username, password e il file selezionato. Questi dati vengono inviati al serverr attraverso la funzione "fetch". La risposta del server viene interpretata come JSON: se la risposta indica errore allora viene visualizzato un messaggio di errore temporaneo, altrimenti viene chiamata la funzione "aggiornaViaggi()"
+
+---JAVASCRIPT-SERVER---
+Viene effettuata una richiesta POST (HTTP). Vengono estratti i dati dalla richiesta POST ed assegnati alle rispettive variabili. Viene effettuata una QUERY in cui si controlla che non ci siano duplicati del codice nel DataBase:
+	.Se non esistono viaggi con lo stesso codice, viene eseguito l'inserimento dei dati nel DataBase e viene inviato al client un messaggio (risposta JSON) positivo
+	.Se esiste anche un solo viaggio con lo stesso codice, viene restituita la risposta JSON false e un messaggio
+______________________________________________________________________________________________
+**Funzionalità 2 (Auto complete dei valori)**
+
+Viene utilizzata la funzione "fetch" per fare richieste GET al server per l'autocompletamento. Si ottengono elenchi di opzioni per il porto di partenza e di arrivo, che vengono elaborati come JSON e poi utilizzati sugli input HTML
+______________________________________________________________________________________________
+**Funzionalità 3 (CSS riquadri delle prenotazioni)**
+

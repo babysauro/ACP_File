@@ -1,0 +1,8 @@
+WebApp
+
+- Fare il pull su git
+- Aprire VS ed aprire il folder del progetto
+- Aprire MongoDB e avviare la connessione
+	.Se fallisce, vai su servizi, cerca MongoDB, premi tasto destro ed avvia
+- Apri il terminale ed attiva node js:
+	.Prendi il path del progetto e digita node server.js
