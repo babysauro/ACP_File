@@ -1,0 +1,756 @@
+**THREADS**
+Creazione per ereditarietà:
+
+public class MyThread extends Thread{
+	public MyThread(){
+		//costrutore
+	}
+	public void run(){
+		doWork(); //codice del thread
+	}
+}
+
+//In un altro file (main)
+Thread thread = new MyThread();
+thread.start();
+
+
+OPPURE creazione per implementazione
+
+public class MyRunnable implements Runnable{
+	public void run(){
+		doWork(); //codice del thread
+	}
+}
+
+//In un altro file (main)
+Runnable runnable = new MyRunnable();
+Thread thread = new Thread(runnable);
+thread.start();
+
+- Scrivere nel main questo nel caso si ha a che fare con più thread:
+	MyThread[] threds = new MyThread[size];
+	thread[i] = new MyThread();
+	thread[i].start();
+- Dopodichè si fa la join per attendere tutti i thread:
+	 thread[i].join();
+
+- Mettere in attesa un thread per un numero di millisecondi:
+	thread.sleep(1000); //dorme per 1 secondo
+
+
+_________________________________________________________________________________________
+**SEMAPHORE**
+- Creazione semaforo:
+	private Semaphore semaphore = new Semaphore(n_permessi);
+	//Se si mette anche true, si utilizza la politica di accodamento FIFO
+
+- Acquisizione di un permesso del semaforo (nel try):
+	semaphore.acquire();
+
+- Rilasciare il permesso del semaforo (nel finally dopo catch):
+	semaphore.release();
+
+- Acquisizione di un permesso senza bloccare il thread:
+	semaphore.tryAcquire; //tryAcquire è boolean!!
+
+_________________________________________________________________________________________
+**MONITOR**
+import java.util.concurrent.*;
+
+- Utilizzare il monitor nel file di implementazione
+
+private Lock lock; //Dichiarare il lock (libreria java.util.councurrent.locks.*;)
+private Condition COND; //Dichiarare la condition variable
+
+- Per inizializzare:
+	lock = new ReetrantLock();
+	COND = lock.newCondition();
+- Con RetrantLock possiamo acquisire e rilasciare il blocco più volte
+
+- Utilizzare lock.lock() e lock.unlock() come in SO
+	. lock.unlock() va nel blocco finally
+- Utilizzare sulle condition variables COND.await() e COND.signal() per signal and wait
+- Utilizzare COND.wait() e COND.notify() per signal and continue/wait and notify
+	.Ricorda che JAVA utilizza signal and continue
+
+_________________________________________________________________________________________
+**CODA CIRCOLARE**
+- Nel file Impl mettere nella firma della classe:
+	implements Coda (nome della coda)
+
+- Istanziare la coda circolare:
+	Coda nome_coda = new CodaCricolare(size);
+
+- Instanziare il wrapper ( monitor/semafoto/syncr):
+	Coda wrapper = new CodaWrapperLock(coda);
+
+- Viene utilizzato un array gestito in maniera circolare per fare la coda:
+	private int buff[];
+
+- La coda ha una testa, coda, count, size e un indice
+
+- Si inizializza la coda nel costruttore della coda circolare:
+	buff = new int [size];
+	count = testa = coda = 0;
+	this.size = size;
+
+- Inserimento nella coda:
+	coda[tail] = elemento;
+	tail = (tail+1)%size;
+	count++;
+- Prelievo:
+	elemento = coda[head];
+	head = (head+1)%size;
+	count--;
+- La gestione può essere fatta dal monitor, dai semafori oppure dai syncr
+	.Monitor:
+		lock.lock();
+		//Nel try-catch
+		while(count == size){
+			non_vuota.await();
+		}
+		//Inserimento(vedi sopra) 
+		//Nel finally
+		lock.unlock();
+		
+	.Per il prelievo, inverire le condition variables
+
+_________________________________________________________________________________________
+**SOCKET**
+- class Socket serve per creare una connessione di rete, utilizzata sia da client sia da server:
+	Socket socket = new Socket(address, port);
+
+- class ServerSocket viene usata unicamente dal server per accettare una richiesta di connesione
+	ServerSocket server = new ServerSocket(port);
+
+- Costruttore_1:
+	ServerSocket(int port) throws IOException;
+
+- Costruttore_2:
+	ServerSocket(int port, int backlog) throws IOException;
+	
+- Attesa connessioni:
+	while(true){
+	Socket client = server.accept();
+	}
+
+- Comunicazione con le socket:
+	DataInputStream fromClient = new DataInputStream (socket.getInputStream());
+	DataOutputStream toClient = new DataOutputStream (socket.getOutputStream());
+
+- Chiusura connessione:
+	socket.close();
+
+-----------------------------------------------------------------------------------------
+**SOCKET UDP**
+-Creazione socket e pacchetto UDP:
+	DatagramSocket socket = new DatagramSocket(num_port);
+	byte buffer[] = new byte[65508]; //65508 è la max dimensione di un pacchetto UDP per la receive
+	DatagramPacket packet = new DatagramPacket(buffer, buffer.lenght);
+
+- Ricezione datagramma:
+	socket.receive(packet);
+	InetAddress fromAddr = packet.getAddress();
+	int fromPort = packet.getPort();
+	int lenght = packet.getLeght();
+	byte[] data = packet.getData();
+
+- Invio datagramma:
+	DatagramSocket socket = new DatagramSocket ();
+	DatagramPacket packet = new DatagramPacket (s.getBytes(), s.getBytes().length, InetAddress.getLocalHost(), 8050 );
+	//s è una stringa!!
+	socket.send(packet);
+
+- Lettura e stampa del contenuto del pacchetto
+	s = new String(packet.getData(), 0, packet.gatLenght());
+	System.out.println("Contenuto pacchetto: " + s);
+	
+
+_________________________________________________________________________________________
+**PROXY-SKELETON (Socket)**
+- Proxy ha:
+	.ClientImpl che implementa i servizi dichiarati dall'interfaccia
+	.ClientProxy che inoltra le richieste verso il lato server
+
+
+- Skeleton per ereditarietà:
+	.Si inserisce "extends" con il file SkeletonE nella firma del file Impl
+	ServerImpl -> ServerSkeleton -> InterfacciaServer
+
+	public class ServerImpl extends ServerSkeleton{}
+	public class ServerSkeleton implements InterfacciaServer{}
+	public interface InterfacciaServer{}	
+
+- Skeleton per delega:
+	.Si inserisce "implements" con l'interfaccia, nella firma del file Impl
+	ServerSkeleton -> InterfacciaServer
+	ServerImpl ----->
+	
+	public class ServerSkeleton implements InterfacciaServer{}
+	public class ServerImpl implements InterfacciaServer{}
+	public interface InterfacciaServer {}
+
+-----------------File IMPL-------------------
+- Inserire "implements"/"extends" con l'interfaccia/skeleton
+- Inserire i metodi da utilizzare con quello che fanno
+
+-----------------File INTERFACCIA-------------------
+- Inserire solo le chiamate dei metodi che vengono utilizzati nel codice
+
+
+-----------------File SKELETON-------------------
+- Nella firma si mette "implements" con l'interfaccia a cui si riferisce
+	public class ServerSkeleton impelments InterfacciaServer{}
+
+- Prima di mettere i metodi ed il costruttore, dichiara le variabili che servono (anche l'interfaccia se è per delega)
+
+- Nel file dello skeleton bisogna inserire il metodo runSkeleton
+	.Creare un nuovo oggetto ServerSocket
+		ServerSocket serverSocket = new ServerSocket(port);
+		//DatagramSocket socket = new DatagramSocket(port);
+		//byte[] buff = new byte[65508];
+
+- Nel while(true):
+	.Mettersi in attesa di connessioni:
+		Socket socket = serverSocket.accept();
+		//DatagramPacket packet = new DatagramPacket(buff, buff.lengh);
+		//socket.receive(packet);
+
+	.Con i thread, creare nuovo oggetto Thread e poi farlo partire 
+		SkeletonThread st = new SkeletonThread(socket, this);
+		st.start();
+
+- Se si utilizza il metodo per DELEGA, lo Skeleton deve avere anche una "implementazione" dei metodi dell'interfaccia
+	.Se il metodo è int o boolean, mettere return interfaccia.metodo(), altrimenti:
+
+	@Override
+	public tipo metodo(argomenti){
+	  interfaccia.metodo(argomenti);
+	} 
+- Se si utilizza il metodo per EREDITERIETà, non bisogna inserire le implementazioni dei metodi dell'interfaccia, ma mettere solo costruttore 
++ runSkeleton
+
+-----------------File THREAD-------------------
+- Nella firma mettere "extends" Thread
+- Prima del costruttore, dichiarare le variabili che servono, compresa l'interfaccia
+	.Se si passano interfaccia e socket, allora bisogna solo occuparci del canale di connesione
+
+- Mettere il metodo run con @Override e scrivere all'interno cosa deve fare il/i thread
+
+	.Creare i canali di connessione:
+	DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
+	DataInputStream dataIn = new DataInputStream(socket.getInputStream());
+
+- Chiusura della socket
+
+
+-----------------File PROXY-------------------
+- Nella firma si mette "implements" con l'interfaccia a cui si riferisce
+- Prima di mettere i metodi ed il costruttore, dichiara le variabili che servono (anche l'interfaccia)
+- Inserire i metodi che effettua con lo svolgimento sotto
+	.In ogni metodo, creare un oggetto Socket socket = new Socket(addr, port);
+
+- Creazione del proxy:
+	ICounter counter = new CounterProxy(host, port);
+
+- CounterProxy ha un costruttore (implements ICounter):
+	public CounterProxy(String host, int port){
+		this.host = host;
+		this.port = port;
+	}
+
+- Invocazione al servizio remoto:
+	Socket socket = new Socket(host, port);
+	//Canale di comunicazione tra client e server
+	DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
+	DataInputStream dataIn = new DataInputStream(socket.getInputStream());
+
+---------------SERVER--------------
+- Si tratta del main che avvia tutto il lato Server
+- Ereditarietà:
+	Implement impl = new Implement();
+	impl.runSkeleton()
+
+- Delega:
+	Interfaccia interf = new Implement();
+	Skeleton skeleton = new Skeleton();
+	skeleton.runSkeleton();
+
+
+-------DATAIN & DATAOUT-----
+DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
+DataInputStream dataIn = new DataInputStream(socket.getInputStream());
+
+- Se si vuole utilizzare la stessa connessione TCP ed evitare di costruirne altre:
+DataOutputStream dataOut = new DataOutputStream(BufferedOutputStream(socket.getOutputStream()));
+DataInputStream dataIn = new DataInputStream(BufferedInputStream(socket.getInputStream()));
+
+__________________________________________________________________________________________
+**RMI**
+
+- Nei file interface bisogna chiamare la libreria:
+	import java.rmi.Remote;
+	import java.rmi.RemoteException;
+
+- L'interfeccia deve avere anche:
+	extends Remote
+
+- I metodi nelle interface devono avere nella firma:
+	throws RemoteException
+- Anche nei file dove vengono eseguite, i metodi hanno bisogno di questa particolarità
+
+---------Ereditarietà---------
+- Andare a scrivere la firma del file d'implementazione così:
+	public class CounterImpl extends UnicastRemoteObject implements ICounter{}
+	.Dopodiché ricordarsi di mettere il serialver
+
+- Avviare il servizio remoto:
+	ICounter counter = new CounterImpl();
+
+--------Delega----------
+- Andare a scrivere la firma del file d'implementazione così:
+	public class CounterImpl implements ICounter {}
+
+- Avvio il servizio remoto:
+	ICounter conter = new CounterImpl();
+	ICounter counterStub = (ICounter) UnicastRemoteObject.exportObject(counter,0);
+
+--------RMI Registry------
+- Permette di individuare e gestire la locazione degli oggetti distribuiti
+- Si mette dopo aver avviato l'oggetto remoto nei main per dare il via al file Impl
+
+	.binding (server) ->
+	Registry rmiRegistry = LocateRegistry.getRegistry();
+	IDispatcher dispatcher = new DispatcherImpl();
+	rmiRegistry.rebind("mycounter", counter);  
+
+	//Per delega rmiRegistry.rebind("mycounter", counterStub);
+	
+	.lookup (client) ->
+	Registry rmiRegistry = LocateRegistry.getRegistry();
+	ICounter counter = (ICounter) rmiRegistry.lookup("mycounter");
+
+-----------Lista-------------------
+
+- Per fare la LISTA basta fare un vettore di interfacce:
+  	private Vector<tipo/interfaccia> nome_lista = new Vector<tipo/interfaccia>();
+
+- Aggiungere un nuovo membro nella lista:
+	nome_lista.add(nuovo_membro);
+
+- Vedere il numero di membri della lista
+	nome_lista.size();
+------------------------------------
+
+- Per contattare l'oggetto remoto il client:
+	Registry rmiRegistry = LocateRegistry.getRegistry();
+	Interfaccia nome = rmiRegistry.lookup("nome_interfeccia")
+
+- Invece lato server:
+	Counter counter = new CounterImpl();
+	Registry rmiRegistry = LocateRegistry.getRegistry();
+	rmiRegistry.rebind("mycounter", counter);
+	
+
+--------Serializzare-------
+- Per rendere una classe serializzabile, occorre scrivere:
+	public class Person implements Serializable {}
+- Nella classe biosgna poi inserire il serialver che si ottiene da terminale
+
+
+---------------------------------------------------------
+ESEGUIRE CON JAVA RMI
+
+//Inserire il serialver
+- Scrivere nella firma "exstends UnicastRemoteObject" nei file Impl
+- terminale: cd bin
+- terminale: serialver server.SportelloImpl
+
+- Da un altro terminale digitare nella cartella bin: rmiregistry
+
+- Per eseguire, premere Run oppure da terminale nella cartella bin:
+	java package.nomeFile input input(se ci sono)
+
+__________________________________________________________________________________________
+**JMS**
+- Ci sono dei passaggi FISSI che si fa in ogni main:
+	Hashtable<String, String> prop = new Hashtable<String, String>();      	
+	prop.put( "java.naming.factory.initial","org.apache.activemq.jndi.ActiveMQInitialContextFactory" );
+        prop.put("jndi.naming.provider.url", "tcp://127.0.0.1:61616");
+        
+        prop.put("topic.comandi", "comandi"); //Coda
+	Context jndiContext = new InitialContext(prop); //Si mette nel try-catch
+
+----PUB/SUB----
+//Publisher
+//Si mette nel try-catch
+	TopicConnectionFactory connFactory = (TopicConnectionFactory)	jndiContext.lookup("TopicConnectionFactory");
+	Topic topic = (Topic)jndiContext.lookup("test");
+	TopicConnection topicConn = connFactory.createTopicConnection();
+	topicConn.start();
+	TopicSession topicSession = topicConn.createTopicSession(false,	Session.AUTO_ACKNOWLEDGE);
+	TopicPublisher pub = topicSession.createPublisher(topic);
+
+//Subscriber
+	TopicConnectionFactory connFactory = (TopicConnectionFactory) jndiContext.lookup("TopicConnectionFactory");
+	Topic topic = (Topic) jndiContext.lookup("test);
+	TopicConnection topicConn = connFactory.createTopicConnection();
+	topicConn.start();
+	TopicSession topicSession = topicConn.createTopicSession(false, Session.AUTO_ACKNOWLEDGE);
+	TopicSubscriber sub = topicSessio.createSubscriber(topic);
+
+
+-----SENDER/RECEIVER----
+//Sender
+	QueueConnectionFactory queueConnFactory =
+	(QueueConnectionFactory)jndiContext.lookup("QueueConnectionFactory");
+	Queue queue = (Queue)jndiContext.lookup("test");
+	QueueConnection queueConn = queueConnFactory.createQueueConnection();
+	QueueSession queueSession = queueConn.createQueueSession(false,
+	Session.AUTO_ACKNOWLEDGE);
+	QueueSender sender = queueSession.createSender(queue);
+
+//Receiver
+	QueueConnectionFactory queueConnFactory =
+	(QueueConnectionFactory)jndiContext.lookup("QueueConnectionFactory");
+	Queue queue = (Queue)jndiContext.lookup("test");
+	QueueConnection queueConn = queueConnFactory.createQueueConnection();
+	queueConn.start();
+	QueueSession queueSession = queueConn.createQueueSession(false,
+	Session.AUTO_ACKNOWLEDGE);
+	QueueReceiver receiver = queueSession.createReceiver(queue);
+	
+
+//Messaggio
+- Nel main si fa:
+	TextMessage message = queueSession.createTexMessage(); //anche con Topic
+	.La stessa cosa vale anche per le altre tipologie di messaggi (MapMessage)
+
+- Mandare un messaggio
+	pub.publish(message); //sender.send(message);
+
+- Ricevere un messaggio vedi nel messageListener sotto
+
+- Il metodo getJMSReplyTo() consente ad un receiver di ottenere il riferimento ad una 
+Destination scelta da un sender
+	message.getJMSReplyTo("coda_destinazione");
+	
+
+
+- Se si deve ricevere il messaggio, e questo è di tipo TextMessage, bisogna utilizzare lo split:
+- divide il messaggio e lo trasforma in un array di valori
+	String[]splitted = message.split("-");
+
+- Se il consumo dei messaggi è sincrona bisogna fare:
+	//Clean up risorse
+	pub.close();   sender.close();      
+	//sub.close(); rec.close();
+	topicSession.close();
+	topicConn.close();
+
+
+
+-----MESSAGELISTENER----
+- MyListener è una classe a parte che implementa MessageListener e al suo interno viene scritto il codice che elabora il messaggio al suo arrivo.
+
+public class MyListener impelents MessageListener{
+
+	//Costruttore
+	public MyListener(){
+	}
+
+	@Override 
+	public void onMessage(Message msg){
+		
+		TextMessage message = (TextMessage) msg;
+		try{
+			System.out.println("Messaggio ricevuto");
+		}catch (JMSException e){
+			e.printStackTrace();
+		}
+	}
+}
+
+- Inizializzazione MyListener va nel main dopo le connessioni:
+	MyListener listener = new MyListener();
+	receiver.setMessageListener(listener); //sub.setMessageListener(listener);
+- Dopo inserire:
+	tConn.start();
+
+
+---DURABLE SUBSCRIBER---
+- Si tratta di un subscriber duraturo, quindi ricevere messaggi anche quando subscriber non è attivo in quel momento
+- Dopo aver messo TopicConnection... scrivere sotto:
+	topicConn.setClientID("MakeItLastConn_1");
+
+-Dopo la creazione della sessione inserire:
+	TopicSubscriber sub = topicSession.createDurableSubscriber(topic, "MakeItLastConn_1");
+
+
+
+------------Apache Activemq----------------
+- terminale: seleziona il path della cartella di apache e arriva fino a bin
+- terminare digitare: activemq start 
+- tenere acceso il terminale
+
+
+------ JMS-RMI -------
+- Terminale 1: entrare nella cartella bin e poi digitare rmiregistry
+- Terminale n: entrare nella cartella bin e poi digitare
+java -cp "\C:\Users\seses\Desktop\ACP\apache-activemq-5.16.6\activemq-all-5.16.6.jar;" package.nomefile myfile
+
+java -c "path di activemq\nome di activemq nel pc.jar;" package.nomeFile myfile   IN GENERALE
+ .Farlo per tutti i file che bisogna avviare
+
+
+__________________________________________________________________________________________
+**FILE**
+- Creazione oggetto File:
+	File file = new File("./"+nomeFile);
+
+- FileWriter server per la scrittura nel file un singolo carattere alla volta:
+	FileWriter filew = new FileWriter(file);
+	filew.write("Questo è il mio primo file");
+	filew.flush();
+	filew.close();
+
+- Si usa BufferedWriter se vogliamo aumentare le prestazioni e scrivere più ordinato
+	BufferedWriter buff = new BufferedWriter (filew);
+	buff.write("Questo è il mio file");
+	buff.newLine();
+	buff.flush();
+	buff.close();
+	
+- Si usa PrintWriter se dobbiamo scrivere qualcosa che stia != da String
+	PrintWriter print = new PrintWriter(file);
+	print.println("Hello");
+	print.close();
+
+- Una volta creato il file, si può fare questo controllo:
+	if(file.exists() == false){
+	  file.createNewFile();
+	}
+
+__________________________________________________________________________________________
+**DATAINPUTSTREAM**  **DATAOUTPUTSTREAM**
+
+- DataInputStream permette di leggere diversi tipi di dati primitivi da un flusso di byte
+	DataInputStream dataIn = new DataInputStream (socket.getInputStream());
+	dataIn.readUTF(); //Legge una stringa inviata dal server tramite la socket
+	
+- Stessa cosa con DataOutputStream:
+	DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
+	dataOut.writeUTF("Hello, server!"); //Viene inviata una stringa al client tramite la socket
+	dataOut.writeInt(x); //Viene inviato un intero al client tramite la socket
+
+
+
+______________________________________________________________________________________
+**INPUT**
+- Prendere in input qualcosa:
+	String host = args[0];
+	String valore = Integer.valueof(args[2]);
+	int port = Integer.parseInt(args[2]); oppure int port = Integer.valueof(args[2]);
+
+_____________________________________________________________________________________
+**AVVIARE IL PROGRAMMA**
+- Entrare nella cartella bin e digitare:
+	java package.nomeFile
+- Se ci sono degli input da inserire, entrare sempre nella cartella bin e poi:
+	java package.nomeFile input1 input2
+
+______________________________________________________________________________________
+**INTERFACCIA ORDER**
+- Quando in una traccia viene richiesto di passare un'istanza Order, bisogna creare
+un file a parte (una classe Order)
+
+public class Order implements Serializable {
+
+    private static final long serialversionUID=4657459865289644185L;
+
+    private int id;
+    private int location;
+
+    private String adress; 
+
+    public Order( int id, int location, String adress){
+        this.id= id;
+        this.location= location;
+        this.adress=adress; 
+
+    }
+- In più vengono inseriti anche dei metodi getter:
+    public int getLocation(){
+        return this.location;
+
+    }
+
+    public int getId(){
+        return this.id;
+    }
+
+    public String getAdress(){
+        return this.adress;
+    }
+
+- Nel "main" creare una nuova istanza, in modo da portela usare:
+	Order order = new Order(id, location, adress);
+______________________________________________________________________________________
+______________________________________________________________________________________
+______________________________________________________________________________________
+PYTHON
+
+
+**STOMP - JMS **
+- Bisogna scrivere nei "file.py":
+	import stomp
+		.Possiamo aggiungere anche altre librerie, come random e time se servono
+		import stomp, random, time
+
+- Connessione al provider:
+	.Se utilizziamo anche JMS si scrive:
+	conn = stomp.Connection([('127.0.0.1', 62613)], auto_content_lenght = False)
+
+	.Altrimenti levare auto_content....
+
+	conn.connect(wait = True)
+
+- Invio dei messaggi, viene eseguita dopo aver stabilito la connessione
+	conn.send('/queue/response', 'test message')
+
+- Ricezione dei messaggi:
+	conn.set_listener('nome', MyListener())
+	conn.subscribe('destinazione topic/queue', id = 1, ack= 'auto'/'client'/'client-individual')
+
+------Listener------
+- Il listener si scrive sempre prima del "main"
+- La receiver in python avviene attraverso il setup di Listener
+
+class MyListener (stomp.ConnectionListener):
+	def on_Message(self, frame):
+		print('received a message "%s" ' %frame.body)
+
+- Nel main, il Listener si deve settare subito dopo aver creato la connessione:
+	conn.set_listener('', nome_listener) 
+
+- Chiususra della connessione:
+	conn.disconnect()
+_________________________________________________________________________________________
+**INTERFACCIA**
+- Funziona come java:
+	class nomeInterfaccia():
+		def metodo(self, x):
+			pass 
+
+- Per creare un'iterfaccia che eredita da un'altra si fa:
+	class nome_Interfaccia(InterfacciaPadre):
+		def metodo(self,x):
+			pass
+- Importare l'interfaccia padre
+	from interface import interfacciaPadre
+
+________________________________________________________________________________________
+**PROXY - SKELETON**
+- Skeleton:
+	class Skeleton(Interfaccia):
+		def __init__(self, x, y):
+			self.x = x
+			self.y = y
+
+		##Altri metodi
+
+------Server--------
+- Tutto nel metodo run_skeleton(self):
+- Creazione della socket:
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) ##TCP
+	# Per la socket UDP, mettere type = socket.SOCK.DGRAM)
+	s.bind((IP, PORT))
+	s.listen(n_connessioni_in_coda)
+
+- Accettare la connesione con il client:
+	conn, addr = s.accept()
+
+- Ricevere il messaggio:
+	dato = conn.recv(quantità_dati) #BUFFER_SIZE 1024
+
+- Invio messaggio al client:
+	toClinet = something
+	conn.send(toClient.encode("utf-8")
+
+- Chiusura della connessione e della socket
+conn.close()
+s.close()
+
+
+-----Client-------
+- Creazione della socket:
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #TCP
+	# Per UDP bisogna mettere socket.SOCK_DGRAM
+	s.connect((IP, PORT))
+
+- Invio messaggio al server
+	s.send(MESSAGE.encode("utf-8")  #In UDP è s.sendto(msg.encode("utf-8", IP)
+
+- Ricezione messaggio dal server:
+	data = s.recv(quantità_dati) #BUFFER_SIZE 1024
+	#In UDP è data = s.recvfrom(BUFFER_SIZE)
+
+
+__________________________________________________________________________________________
+**MAIN**
+- Non esiste un vero e proprio main, ma si scrive:
+	if __name__ == "__main__":
+		#something
+
+- Il try-catch, si chiama:
+	try:
+		#qualcosa
+	except Eccezion:
+		#print("Messaggio di eccezione")
+
+- Per chiamare Proxy:
+	print ("Generating request...")
+	proxy = Proxy(int(PORT))
+	proxy.request(MESSAGE)  #request è un metodo
+
+- Per chiamare lo Skeleton:
+print("Server running...")
+realSubject = RealSubject(int(PORT))
+realSubject.run_skeleton();
+#RealSubject è una classe che eredita da Skeleton
+
+
+
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

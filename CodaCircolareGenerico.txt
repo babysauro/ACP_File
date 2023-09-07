@@ -1,0 +1,622 @@
+**CODA CIRCOLARE**
+
+- La coda circolare viene gestita utilizzando diversi file:
+	package coda -> Coda.java e CodaWrapper.java
+	package codaimpl -> CodaCircolare.java e CodaWrapperLock/Sem/Synchr.java
+
+//FILE Coda
+package coda;
+public interface Coda{
+	public void inserisci(int i);
+	public int preleva();
+	public boolean empty();
+	public boolean full();
+	public int getSize();
+}
+--------------------------------------------------------------------------------------------
+//FILE CodaWrapper
+package coda;
+public abstract class CodaWrapper implements Coda{
+	protected Coda coda;
+
+	public CodaWrapper(Coda coda){
+	  this.coda = coda;
+	}
+	
+	public boolean empty(){
+	  return coda.empty();
+	}
+	
+	public boolean full(){
+	  return coda.full();
+	}
+
+	public int getSize(){
+	  return coda.getSize();
+	}
+}
+
+--------------------------------------------------------------------------------------------
+//FILE CodaCircolare
+package codaimpl;
+public class CodaCircolare implements Coda{
+	//implementazione coda circolare
+	
+	private int data[]; //array in cui vengono memorizzati gli elementi della coda
+	private int size;
+	private int count;
+	private int tail; //coda
+	private int head; //testa
+
+	public CodaCircolare(int size){
+	  this.size = size;
+	  count = coda = testa = 0;
+	  data = new int[size];
+	}
+
+	public boolean full(){
+	  if(count == size)
+	    return true;
+	  return false;
+	}
+
+	public boolean empty(){
+	  if(count == 0)
+	    return true;
+	  return false;
+	}
+	
+	public int getSize(){
+	  return size;
+	}
+
+	//Inserisce un elemento
+	public void inserisci(int i){
+
+	  data[tail%size] = i;
+	  
+	  try{
+	    Thread.sleep(101 + (int)Math.random()*100); //sleep per max 200 ms
+	  }catch (InterruptedException e){
+	    e.printStackTrace();
+	  }
+
+	  count = count + 1;
+	  System.out.println("Inserito "+i+". Totale elementi = "+count);
+	  tail = tail+1;
+	}
+
+	//Estrae un elemento
+	public int preleva(){
+	
+	  int elemento = data[head%size];
+	
+	  try{
+	    Thread.sleep(101+(int)Math.random()*400); //Sleep per max 500ms
+	  }catch(InterruptedException e){
+	    e.printStackTrace();
+	  }
+
+	  count = count - 1;
+	  System.out.println("Prelevato "+elemento+". Totale elementi = "+count);
+	  head = head + 1;
+	  return elemento;
+	}
+}
+
+--------------------------------------------------------------------------------------------
+//FILE CodaWrapperLock
+package codaimpl;
+public class CodaWrapperLock extends CodaWrapper{
+
+    private final Lock lock;
+	private final Condition nonPiena;
+	private final Condition nonVuota;
+
+	public CodaWrapperLock(Coda coda){
+	  super(coda);
+
+	  lock = new ReentrantLock();
+	  nonPiena = lock.newCondition();
+	  nonVuota = lock.newCondition();
+	}
+
+	public void inserisci(int i){
+
+	  lock.lock();
+	
+	  try{
+
+            while(coda.full()){
+                try{
+                nonPiena.await();
+                }catch(InterruptedException e){
+                e.printStackTrace();
+                }
+            }
+
+            coda.inserisci(i);
+            nonVuota.signal();
+
+        }finally{
+	    lock.unlock();
+	  }
+	
+	}
+
+	public int preleva(){
+	  
+	  int elemento = 0;
+	  lock.lock();
+	
+	  try{
+
+            while(coda.empty()){
+                try{
+                nonVuota.await();
+                }catch(InterruptedException e){
+                e.printStackTrace();
+                }
+            }
+            elemento = coda.preleva();
+            nonPiena.signal();
+
+	  }finally{
+	    lock.unlock();
+	  }
+	  return elemento;
+	}
+}
+
+--------------------------------------------------------------------------------------------
+//FILE CodaWrapperSem
+package codaimpl;
+public class CodaWrapperSem extends CodaWrapper{
+    
+    //Inserire i semafori
+    private Semaphore postDisp;
+    private Semaphore elemDisp;
+
+    public CodaWrapperSem(Coda coda){
+        super(coda);
+
+        postDisp = new Semaphore(coda.getSize());
+        elemDisp = new Semaphore(0);
+    }
+
+    public void inserisci(int i){
+
+        try {
+            
+            postDisp.acquire();
+            try {
+                synchronized(coda){
+                    coda.inserisci(i);
+                }
+            } finally {
+                elemDisp.release();
+            }
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public int preleva(){
+
+        int elemento = 0;
+        
+        try {
+            
+            elemDisp.acquire();
+            try{
+                synchronized(coda){
+                    elemento = coda.preleva();
+                }
+            }finally{
+                postDisp.release();
+            }
+
+        } catch ( InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return elemento;
+    }
+
+}
+
+--------------------------------------------------------------------------------------------
+//FILE CodaWrapperSynch
+package codaimpl;
+public class CodaWrapperSynch extends CodaWrapper{
+    
+    public CodaWrapperSynch(Coda coda){
+        super(coda);
+    }
+
+    public void inserisci(int i){
+        synchronized(coda){
+
+            while(coda.full()){
+                try{
+                    coda.wait();
+                }catch(InterruptedException e){
+                    e.printStackTrace();
+                }
+            }
+
+            coda.inserisci(i);
+            coda.notifyAll();
+
+        }
+    }
+
+    public int preleva(){
+
+        int elemento = 0;
+
+        synchronized(coda){
+
+            while(coda.empty()){
+                try {
+                    coda.wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            elemento = coda.preleva();
+            coda.notifyAll();
+
+        }
+
+        return elemento;
+    }
+
+}
+
+--------------------------------------------------------------------------------------------
+NEL FILE MAIN
+- Instanziare la coda:
+	Coda coda = new CodaCircolare(size_della_coda);
+- Instanziare uno dei wrapper per la sincronizzazione:
+	Coda wrapper = new CodaWrapperSem(coda);
+
+- Il compito viene passato a dei thread per l'inserimento e il prelievo
+
+--------------------------------------------------------------------------------------------
+NEL FILE THERAD
+public class WorkerThread extends Thread {
+
+	
+	private Coda wrapper;			 
+	private boolean flag; //se true, invoca il metodo di inserimento 
+	
+	public WorkerThread ( Coda w, boolean f ){
+		wrapper=w;
+		flag = f;
+	}
+	
+	public void run (){
+		
+		if ( flag )
+			wrapper.inserisci(1+(int)(Math.random()* 100));	//int random in [1;100]
+		else
+			wrapper.preleva();
+		
+	}
+	
+}
+
+--------------------------------------------------------------------------------------------
+JMS
+- Se si ha a che fare con JMS, cambia giusto qualcosina
+- Nel FILE MAIN, prima di fare quello che sta scritto sopra, bisogna prima creare fare Hashtable, ConnectionFactory, Queue/Topic, Connection, Session e Receiver/Sender
+	.Dopodiché si porcede con l'instanziare la coda
+
+- Se la receive è asincrona, mettere il Listener dopo la coda che avvierà i thread
+	.Se non c'è, avviare qui i thread
+
+
+- Nel FILE THREAD si passa la coda, il messaggio (msg) e la qc
+- Il thread si occuperà di mandare i messaggi, quindi bisogna fare un'altra Session 
+	.Dopodiché creare il Sender (QueueSender o TopicSender)
+	.Creare il tipo di messaggio
+	.Effettuare la setString, setInt del messaggio
+	.Fare la send
+- Dopo aver fatto ciò, effettuare la close al sender e alla session
+
+
+__________________________________________________________________________________________________________________________________________________________________________________________
+**PYTHON**
+
+- Prima di tutto si devono importare alcune cose:
+	import logging
+	import threading
+	import time
+	from random import randint
+	
+	CONSUMER = 'consumer'
+	PRODUCERS = 'producers'
+	N_CONSUMERS = 10
+	N_PRODUCERS = 10
+	QUEUE_SIZE = 5
+
+---------------------------------------------------------------------------------------------
+3.MAIN
+def main():
+    
+    # generating the queue 
+    queue = []
+
+    # generating the condition variable
+    cv_lock = threading.Lock()
+    producer_cv = threading.Condition(lock=cv_lock) # uso un Lock per la procuder_cv, non posso usare un RLock
+    consumer_cv = threading.Condition(lock=cv_lock) # uso un Lock per la consumer_cv, non posso usare un RLock
+
+    consumers = []
+    producers = []
+
+    # generating the consumers
+    for i in range (N_CONSUMERS):
+        
+        name=CONSUMER+str(i)
+
+        #Creating thread
+        ct = consumerThread(producer_cv, consumer_cv, queue, name)
+        ct.start() #starting thread
+
+        consumers.append(ct)
+
+
+    # generating the producers
+    for i in range (N_PRODUCERS):
+
+        pt = threading.Thread(
+            target=produce_one_item,
+            name=PRODUCER+str(i),
+            args=(producer_cv, consumer_cv, queue),
+        )
+
+        pt.start()
+
+        producers.append(pt)
+
+    
+    # waiting consumers termination
+    for i in range (N_CONSUMERS):
+
+        consumers[i].join()
+
+
+    # waiting producers termination
+    for i in range (N_PRODUCERS):
+
+        producers[i].join()
+
+
+
+if __name__ == '__main__':
+    main()
+
+
+---------------------------------------------------------------------------------------------
+2.CONSUMER-THREAD 
+class consumerThread(threading.Thread):
+    
+    def __init__(self, producer_cv, consumer_cv, queue, name):
+
+        threading.Thread.__init__(self, name=name)
+        self.producer_cv = producer_cv
+        self.consumer_cv = consumer_cv
+        self.queue = queue
+
+    def run(self):
+        logging.debug('\t\t\tStarted')
+
+        with self.consumer_cv:
+            logging.debug('\t\t\tObtained lock')
+        
+            while not an_item_is_available(self.queue):
+                logging.debug('\t\t\tWaiting')
+                self.consumer_cv.wait() ## non posso consumare perchè non c'è spazio disp.
+        
+            time.sleep(1.0)
+            item = get_an_available_item(self.queue)
+            logging.debug('\t\t\tItem: %r', item)
+
+            logging.debug('\t\t\tNotify')
+            self.producer_cv.notify() ### notifico i produttori che sono sospesi
+
+        logging.debug('\t\t\tReleased lock')
+
+---------------------------------------------------------------------------------------------
+1.ALTRE FUNZIONI
+def an_item_is_available(queue):
+    return not (len(queue) == 0)
+
+def a_space_is_available(queue):
+    return not (len(queue) == QUEUE_SIZE)
+
+
+def get_an_available_item(queue):
+    return queue.pop(0)
+
+
+def make_an_item_available(queue):
+    item = randint(0, 100)
+    queue.append(item)
+
+    return item
+
+def produce_one_item(producer_cv, consumer_cv, queue):
+    logging.debug('Started')
+    
+    with producer_cv:
+        logging.debug('Obtained lock')
+
+        while not a_space_is_available(queue):
+            logging.debug('Waiting')
+            producer_cv.wait()
+
+        time.sleep(1.0)
+        item = make_an_item_available(queue)
+        logging.debug('Item: %r', item)
+
+
+        logging.debug('Notify')
+        consumer_cv.notify()
+
+    logging.debug('Released lock')
+
+_____________________________________________________________________________________________
+**CON SEMAFORI**
+- Non ci sono le funzioni an_item_is_available e a_space_is_available
+- Per il resto è tutto simile
+
+import logging
+import threading
+import time
+from random import randint
+
+CONSUMER = 'Consumer'
+PRODUCER = 'Producer'
+N_CONSUMERS = 10
+N_PRODUCERS = 10
+QUEUE_SIZE = 5
+
+logging.basicConfig(level=logging.DEBUG, format='[%(threadName)-0s] %(message)s',)
+
+def get_an_available_item(queue):
+    return queue.pop(0)
+
+
+def make_an_item_available(queue):
+    item = randint(0, 100)
+    queue.append(item)
+
+    return item
+
+
+class consumerThread(threading.Thread):
+    
+    def __init__(self, mutex, empty, full, queue, name):
+
+        threading.Thread.__init__(self, name=name)
+        self.mutex = mutex
+        self.empty = empty
+        self.full = full
+        self.queue = queue
+
+    def run(self):
+        logging.debug('\t\t\tStarted')
+
+        logging.debug('\t\t\tChecking full semaphore ...')
+
+        ####
+        self.full.acquire() ### full == -1 se entra per primo il consumatore
+
+        ### mutex.acquire()
+        with self.mutex: ### entrerò se mutex>=0
+            logging.debug('\t\t\tAcquired mutex')
+        
+            time.sleep(1.0)
+            item = get_an_available_item(self.queue)
+            logging.debug('\t\t\tItem: %r', item)
+
+            logging.debug('\t\t\tRelease mutex')
+            
+        ## mutex.release()
+            
+        self.empty.release() ### andrò a risvegliare i prod. che sono in attesa
+        
+        logging.debug('\t\t\tReleased empty semaphore')
+
+
+def produce_one_item(mutex, empty, full, queue):
+    logging.debug('Started')
+
+    logging.debug('Checking empty semaphore...')
+
+    empty.acquire() ### empty = 4 se sono il primo prod ad entrare
+
+    with mutex:
+        logging.debug('Acquired mutex')
+
+        time.sleep(1.0)
+        item = make_an_item_available(queue)
+        logging.debug('Item: %r', item)
+
+
+        logging.debug('Release mutex')
+        
+    full.release() ## avviserò i consumatori che sono in attesa, che possono consumare
+    logging.debug('Released full semaphore')
+
+
+def main():
+    
+    # generating the queue, coda fatta con una list
+    queue = [] 
+
+    # generating the semaphores
+    mutex = threading.Semaphore() ### =1 mutua esclusione tra i diversi prod e cons
+    empty = threading.Semaphore(QUEUE_SIZE) ### semaforo per la produzione, inizializzato a QUEUE_SIZE
+    full = threading.Semaphore(0) ### semaforo per la consumazione, inizializzato a 0
+
+    consumers = []
+    producers = []
+
+    # generating the consumers
+    for i in range (N_CONSUMERS):
+        
+        name=CONSUMER+str(i)
+
+        ct = consumerThread(mutex, empty, full, queue, name)
+        ct.start()
+
+        consumers.append(ct)
+
+
+    # generating the producers
+    for i in range (N_PRODUCERS):
+
+        pt = threading.Thread(target=produce_one_item, name=PRODUCER+str(i),
+                                args=(mutex, empty, full, queue),)
+
+        pt.start()
+
+        producers.append(pt)
+
+    
+    # waiting consumers termination
+    for i in range (N_CONSUMERS):
+
+        consumers[i].join()
+
+
+    # waiting producers termination
+    for i in range (N_PRODUCERS):
+
+        producers[i].join()
+
+
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+

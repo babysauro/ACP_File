@@ -1,0 +1,439 @@
+**PYTHON**
+
+- Come far eseguire un programma python:
+	.Accedere alla cartella del file e poi digitare
+	python nome_file.py
+
+- I commenti si fanno digitando prima #
+	#Questo è un commento su python
+- Il commento multilinea si fa mettendo """
+	"""
+	Questo è un commento multi-linea
+	in python.
+	"""
+
+- Stampare a video:
+	print("Hello World!")
+
+- Ricevere in input qualcosa:
+	numero = int(input("Inserisci un numero: ")
+
+----Random-----
+- Importare random:
+	import random
+- Se si vuole stampare qualcosa random basta scrivere:
+	print(random.choice(["sasso", "carta", "forbici",])
+
+------Funzioni-----
+- Una funzione si scrive nel seguente modo:
+	def nome_funzione(parametri_se_ci_sono):
+		#corpo della funzione
+		return qualcosa
+
+- Quando si definisce un metodo all'interno di una classe, il primo parametro deve essere 'self' che è un riferimento della classe stessa
+	def __init__(self, producer_cv, consumer_cv, queue)
+
+___________________________________________________________________________________________
+**IMPORT**
+import sys.stdin
+import sys.stdout
+import stdder
+___________________________________________________________________________________________
+**WITH**
+- Viene utilizzato quando vogliamo risparmiare qualche riga di codice
+- Si usa per file, connessioni di rete, connessioni a database...
+
+	with open("name.txt", "r") as zenigata:
+	  for riga in zenigata:
+	    print(riga)
+___________________________________________________________________________________________
+**FILE**
+- Apertura di un file:
+	open("nome_file.txt", "w")
+___________________________________________________________________________________________
+**CLASSE**
+- Creare una classe:
+	class nome(class_parent):
+	  #Costruttore
+	  def __init__(self,x,y):
+		self.x = x
+		self.y = y
+
+- Nel mai si crea un'istanza della classe:
+	c = Coordinate(3,4)
+	origin = Coordinate(0,0) #p un'altra istanza della classe con x=y=0
+
+- Al di fuori della classe, ci sono i metodi GETTER e SETTER
+	def get_age(self):
+	  return self.age
+	def get_name(self):
+	  return self.name
+	
+	def set_age(self,newage):
+	  self.age = newage
+	def set_name(self, newname):
+	  self.name = newname
+
+_____________________________________________________________________________________________
+**PROD-CONS**
+----FILE MAIN----
+- All'inizio si importano diverse cose:
+	import logging
+	import threading #Serve per usare i thread e i lock
+	import time
+	from random import randint
+
+- La coda (queue) si crea in questo modo:
+	queue = [] #Inizialmente è vuota
+	consumers = []
+	producters = []
+
+- In questa versione si utilizza il Lock con le condition variables
+	cv_lock = threading.Lock()
+	producer_cv = threading.Condition(lock=cv_lock)
+	consumer_cv = threading.Condition(lock=cv_lock)
+ 
+- Per generare i produttori e i consumatori, viene usato il ciclo for
+	for i in range (N_CONSUMERS):
+	  name=CONSUMERS+str(i)
+	  ct = consumerThread(producer_cv, consumer_cv, queue, name)
+	  ct.start()
+	  consumer.append(ct)
+
+	for i in range (N_PRODUCERS):
+	  pt = threading.Thread(target=produce_one_item, name=PRODUCER+str(i),
+				args=(producer_cv, consumer-cv, queue),)
+	  pt.start()
+	  producers.append(pt)
+
+- Dopodiché si effettua la join dei consumatori e dei porduttori in due for separati:
+	for i in range (N_CONSUMERS):
+	  consumers[i].join()
+	
+	for i in range (N_PRODUCERS):
+	  producers[i].join() 
+
+_____________________________________________________________________________________________
+**THREAD**
+
+- Per creare una classe thread, bisogna importare threading:
+	import threading
+
+- Scrivere il nome della classe thread, per ereditarietà:
+	class MyThread(threading.Thread):
+
+		def __init__(self,other_arguments):
+			#Costruttore
+			  threading.Thread.__init__(self, name="thread")#Costruttore 'padre'
+		
+		def run(self):
+			#DoWork
+
+- Creazione di un'istanza della classe MyThread:
+	my_thread = MyThread(name="nome_thread", args)
+- Avvio del thread:
+	my_thread.start()
+- Attesa della fine del thread:
+	my_thread.join()
+
+- Se ci sono più thread, mettere tutti nel ciclo for (uno per la creazione e l'avvio, e un for per la join)
+
+_____________________________________________________________________________________________
+**MULTIPROCESS**
+-Creazione di un porcesso:
+	import multiprocess as mp
+	class MyProcess(mp.Process):
+	  def run(self):
+	    print('Process running')
+	    return
+
+- Nel main, come creare il porcesso:
+	p = MyProcess()
+	p.start()
+- Join del processo:
+	p.join()
+_____________________________________________________________________________________________
+**SOCKET**
+- Per creare una socket si deve importare il modulo socket:
+	import socket
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #TCP socket
+	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) per UDP socket
+
+-----SERVER TCP-----
+- Creazione socket:
+	socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+- Binding:
+	socket.bind((IP,PORT))
+- Mettersi in ascolto:
+	socket.listen()
+- Accettare la richiesta di un client:
+	conn, addr = socket.accept()
+- Inviare un messaggio:
+	toClient = "The world never says hello back!\n"
+	conn.send(toClient.encode("utf-8")
+- Ricevere un messaggio:
+	data = conn.recv(BUFFER_SIZE)
+- Chiusura della connessione e della socket:
+	conn.close()
+	socket.close()
+
+-----CLIENT TCP----
+- Creazione socket:
+	socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+- Effettuare la connessione al server:
+	socket.connect((IP, PORT))
+- Inviare un messaggio:
+	MESSAGE = "Hello, World!\n"
+	socket.send(MESSAGE.encode("utf-8")
+
+- Ricevere un messaggio da parte del server:
+	data = socket.recv(BUFFER_SIZE)
+- Chiususra della socket:
+	socket.close()
+
+- In genere queste funzionalità vengono inserite all'interno di una funzione (def client(PORT)), che poi verrà chiamata dal main:
+	client(int(PORT))
+
+-----SERVER UDP----
+- Creazione socket:
+	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+- Binding:
+	serverAddressPort = ("localhost".encode("utf-8"), 7000)
+	s.bind(serverAddressPort)
+- Ricevere messaggio:
+	bufferSize = 1024 #buffersize è la max quantità di dati che può essere ricevuta
+	msgClient, addr = s.recvfrom(bufferSize) 
+- Inviare messaggio al clien:
+	s.sendto(msgServer.encode("utf-8"), addr)
+
+-----CLIENT UDP----
+- Creazione socket:
+	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+- Inviare messaggio:
+	s.sendto(msgClient.encode("utf-8"), serverAddressPort)
+- Ricevere messaggio:
+	msgServer = s.recvfrom(bufferSize)
+- Chiusura della socket:
+	s.close()
+
+- In genere queste funzionalità vengono inserite all'interno di una funzione (def client(port)), che poi verrà chiamata dal main:
+	client(int(port))
+
+_____________________________________________________________________________________________
+**SERVER MULTI-THREAD**
+- Utilizzare i thread per migliorare l'efficienza del server 
+- Qui viene utilizzato un esempio
+- Viene realizzata una funzione 'Thread function':
+
+	def thd_fun(c):
+	  #data received from client
+	  data = c.recv(1024)
+	  #reverse the given string from client
+	  data = data[::-1]
+	  #send back reversed string to client
+	  c.send(data)
+	  #connection closed
+	  c.close()
+
+- La funzione viene chiamata all'interno del main:
+	if __name__=="__main__":
+	  host = ""
+	  port = 12345
+	
+	  #create and bind a TCP socket
+	  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	  s.bind((host, port))
+	  print("Socket bined to port ", port)
+	
+	  s.listen(5)
+	  print("Socket is listening..")
+
+	  while True:
+		#establish a connection with client
+		c, addr = s.accept()
+		print("Connected to: ", addr[0], ":", addr[1])
+	
+		#start a new thread
+		t = threading.Thread(target=thd_fun, args=(c,))
+		t.start()
+
+	  s.close()
+
+_____________________________________________________________________________________________
+**PROXY-SKELETON**
+- Funziona come in java, in cui lo skeleton può essere implementato per ereditarietà o per delega
+- Viene utilizzata un'interfaccia informale dove vengono definiti i metodi:
+
+	class InformalInterface:
+	  def method_1(self, arg1, arg2):
+		pass
+	  def method_2(self,arg1):
+		pass
+
+- Il file IMPL visto in java viene scritto nel seguente modo:
+
+	class InformalImpl(InformalInterface):
+	  def method_1(self, arg1, arg2):
+		"""override method_1 and implement it"""
+	  def method_2(self,arg1):
+		"""override method_1 and implement it"""
+
+---PROXY-INTERFACCCE INFORMALI----
+import socket, sys
+from interface import Subject
+
+class Proxy(Subject):
+	def __init__(self, port):
+	  self.port = port
+	
+	def request (self, message):
+	  IP = 'localhost'
+	  BUFFER_SIZE = 1024
+	  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)	
+	  s.connect(IP, self.port)
+	  s.send(message.encode("utf-8"))
+	  data = s.recv(BUFFER_SIZE)
+	  print("received data "+data.decode("utf-8"))
+	  s.close()
+
+- Nel MAIN:
+	if __name__=="__main__":
+	  try:
+		PORT = sys.argv[1] #input
+		MESSAGE = sys.argv[2] 
+	  except IndexError:
+		print("Specify args!")
+
+	  print("Client: generating request")
+	  proxy = Porxy(int(PORT))
+	  proxy.request(MESSAGE)
+
+
+-----SKELETON (ereditarietà)-----
+import socket, sys, threading
+from interface import Subject
+
+#ServerSkeleton
+class Skeleton(Subject):
+	def __init__(self, port):
+	  self.port = port
+
+	def request(self, data):
+	  pass
+
+	def run_skeleton(self):
+	  host = 'localhost’
+
+	  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	  s.bind((host, self.port))
+	  self.port = s.getsockname()[1] # get used port
+	  s.listen(5)
+	  print("Socket is listening")
+
+	  while True:
+	  c, addr = s.accept()
+	  print('Connected to :', addr[0], ':', addr[1])
+	  t = threading.Thread(target=thd_fun, args=(c, self))
+	  t.start()
+
+	  s.close()
+
+#thread function
+def thd_fun(c, self):
+	#data received from client
+	data = c.recv(1024)
+	#upcall
+	result = self.request(data)
+	#send reversed string to client
+	c.send(result)
+	#connection closed
+	c.close()
+
+#ServerImpl
+class RealSubject(Skeleton):
+	def request(self, data):
+	  #reverse the given string from clien
+	  data = data[::-1]
+	  return data
+
+if __name__=="__main__":
+	try:
+	  PORT = sys.argv[1]
+	except IndexError:
+	  print("Please, specify PORT arg")
+	
+	print("Server running..")
+	
+	realSubject = RealSubject(int(PORT))
+	realSubject.run_skeleton()
+
+
+_____________________________________________________________________________________________
+**STOMP**
+- Connessione al privvider:
+	import stomp
+	#La porta 61613 si riferisce ad ActiveMq
+	conn = stomp.Connection([('127.0.0.1', 61613)])
+	conn.connect()
+
+- Se il messaggio è del tipo TextMessage, alltro scrivere (altrimenti è MapMessage):
+	conn = stomp.Connection([(ì127.0.0.1', 61613)], auto_content_lengh=False)
+
+- Invio dei messaggi:
+	#'/queue/test/' si riferisce alla destinazione (coda o topic)
+	conn.send('/queue/test/', 'test message')
+
+- Ricezione dei messaggi:
+	conn.set_listener('name', MyListener())
+	conn.subscribe(destination='/queue/test', id=1, akc='auto')
+
+---Listener---
+- La ricezione è quindi ASINCRONA
+
+class MyListener(stomp.ConnectionListener):
+	
+	def __init__(self, conn):
+	  self.conn = conn	
+
+	def on_message(self, frame): #frame è il messaggio ricevuto
+	  print('received a message "%s"'% fame.body)
+
+- Per chiudere la connessione (nel main):
+	conn.disconnet()
+
+- Nel lato JMS, quando si effettua il prop.put per la coda, bisogna scrivere:
+	prop.put("topic.test", "test")
+	.ossia lo stesso nome della coda del sender.py
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
